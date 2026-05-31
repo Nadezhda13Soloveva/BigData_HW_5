@@ -28,17 +28,8 @@ docker exec -u root nifi curl -L https://jdbc.postgresql.org/download/postgresql
 docker restart nifi
 ```
 
-### 2.2 Загрузка шаблона
-
-1. Открываем https://localhost:8443/nifi
-
-2. Вводим логин и пароль
-
-3. Делаем клик ПКМ на холсте и выбираем Upload template
-
-4. Далее выбираем `/opt/nifi/nifi-current/templates/kafka_to_postgres.xml`
-
-### 2.3 Настройка DBCPConnectionPool
+### 2.2 Настройка Controller Services
+0. Открываем NiFi (https://localhost:8443) и вводим логин и пароль
 
 1. Кликаем на значок меню (3 горизонтальные полоски) -> Controller Settings -> Management Controller Services -> тыкаем на плюсик (+)
 
@@ -58,24 +49,36 @@ docker restart nifi
         * Schema Access Strategy: Infer Schema
     Нажимаем Enable
 
-### 2.4 Запуск потока
+### 2.3 Слздаем Flow
 
-1. Перетаскиваем иконку Template на холст
+1. Добавляем процессор ConsumeKafka_2_6:
+    Свойства:
+        * Kafka Brokers: kafka:29092
+        * Topic Name: sales_stream
+        * Group ID: nifi-sales-group-v2
+        * Auto Offset Reset: earliest
 
-2. Выберираем KafkaToPostgres -> Add
+2. Добавляем еще один процессор PutDatabaseRecord:
+    Свойства:
+        * Record Reader: JsonTreeReader
+        * Database Connection Pool: PostgreSQL-Pool
+        * Table Name: sales_stream
+        * Translate Field Names: false (важно!)
+        * Unmatched Field Behavior: Ignore Unmatched Fields
+        * Unmatched Column Behavior: Ignore Unmatched Columns
+        * Statement Type: INSERT
 
-3. Для PutDatabaseRecord указать:
-    * Record Reader: JsonTreeReader
-    * DBCPConnectionPool: PostgreSQL-Pool
+3. Соединяем success от ConsumeKafka_2_6 -> PutDatabaseRecord
 
-4. Двойной клик на группу, чтобы войти внутрь
+4. У PutDatabaseRecord ставим Auto-terminate на failure и retry
 
-5. Выделяем все процессоры (Ctrl+A) -> Start
+5. Выделяем оба процессора (ctrl + A) -> Start
 
 
 ## Шаг 3: Настройка Metabase 
 
 1. Открываем http://localhost:3000
+*Примечание: Может не сразу открыться из-за долгих миграций при первом запуске Metabase, следует подождать несколько минут*
 
 2. Создаем учётную запись
 

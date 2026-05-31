@@ -1,16 +1,12 @@
+version: '3.8'
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
-    ports:
-      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    healthcheck:
-      test: echo srvr | nc localhost 2181 || exit 1
-      interval: 10s
-      retries: 5
     networks:
       - bigdata_net
 
@@ -18,8 +14,7 @@ services:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     ports:
       - "9092:9092"
     environment:
@@ -30,11 +25,6 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-    healthcheck:
-      test: nc -z localhost 9092 || exit 1
-      interval: 10s
-      retries: 5
     networks:
       - bigdata_net
 
@@ -50,10 +40,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./sql:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U analyst -d sales_db"]
-      interval: 5s
-      retries: 5
     networks:
       - bigdata_net
 
@@ -64,39 +50,33 @@ services:
       - "8443:8443"
     environment:
       NIFI_WEB_HTTPS_PORT: 8443
-      NIFI_WEB_PROXY_HOST: localhost:8443
       SINGLE_USER_CREDENTIALS_USERNAME: admin
       SINGLE_USER_CREDENTIALS_PASSWORD: adminAdmin12345!
     volumes:
       - nifi_data:/opt/nifi/nifi-current/data
-      - ./nifi:/opt/nifi/nifi-current/templates
+      - ./nifi:/opt/nifi/nifi-current/templates:ro
     depends_on:
-      kafka:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+      - kafka
+      - postgres
     networks:
       - bigdata_net
 
   data-generator:
-    build:
-      context: ./generator
-      dockerfile: Dockerfile
+    build: ./generator
     container_name: data-generator
     depends_on:
-      kafka:
-        condition: service_healthy
+      - kafka
     volumes:
       - ./исходные_данные:/app/data
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      DATA_DIR: /app/data
       TOPIC_NAME: sales_stream
     networks:
       - bigdata_net
 
   metabase:
-    image: metabase/metabase:latest
+    image: stephaneturquay/metabase-arm64:latest
+    platform: linux/arm64
     container_name: metabase
     ports:
       - "3000:3000"
@@ -108,8 +88,7 @@ services:
       MB_DB_PASS: analyst_pass
       MB_DB_HOST: postgres
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - bigdata_net
 
