@@ -34,39 +34,62 @@ docker restart nifi
 1. Кликаем на значок меню (3 горизонтальные полоски) -> Controller Settings -> Management Controller Services -> тыкаем на плюсик (+)
 
 2. Добавляем DBCPConnectionPool:
-    Название: PostgreSQL-Pool
-    Свойства:
-        * Database Connection URL: jdbc:postgresql://postgres:5432/sales_db
-        * Database Driver Class Name: org.postgresql.Driver
-        * Database Driver Location(s): /opt/nifi/nifi-current/lib/postgresql-42.6.0.jar
-        * Database User: analyst
-        * Password: analyst_pass
 
-3. Нажимаем на значок молнии (Enable)
+    Название: PostgreSQL-Pool
+
+    Свойства:
+
+        * Database Connection URL: `jdbc:postgresql://postgres:5432/sales_db`
+
+        * Database Driver Class Name: `org.postgresql.Driver`
+
+        * Database Driver Location(s): `/opt/nifi/nifi-current/lib/postgresql-42.6.0.jar`
+
+        * Database User: `analyst`
+
+        * Password: `analyst_pass`
+
+3. Нажимаем на значок молнии (`Enable`)
 
 4. Добавляем новый Controller Service -> JsonTreeReader:
+
     Свойства:
-        * Schema Access Strategy: Infer Schema
-    Нажимаем Enable
+
+        * Schema Access Strategy: `Infer Schema`
+
+    Нажимаем `Enable`
 
 ### 2.3 Слздаем Flow
 
-1. Добавляем процессор ConsumeKafka_2_6:
-    Свойства:
-        * Kafka Brokers: kafka:29092
-        * Topic Name: sales_stream
-        * Group ID: nifi-sales-group-v2
-        * Auto Offset Reset: earliest
+1. Добавляем процессор **ConsumeKafka_2_6**:
 
-2. Добавляем еще один процессор PutDatabaseRecord:
     Свойства:
-        * Record Reader: JsonTreeReader
-        * Database Connection Pool: PostgreSQL-Pool
-        * Table Name: sales_stream
-        * Translate Field Names: false (важно!)
-        * Unmatched Field Behavior: Ignore Unmatched Fields
-        * Unmatched Column Behavior: Ignore Unmatched Columns
-        * Statement Type: INSERT
+
+        * Kafka Brokers: `kafka:29092`
+
+        * Topic Name: `sales_stream`
+
+        * Group ID: `nifi-sales-group-v2`
+
+        * Auto Offset Reset: `earliest`
+
+2. Добавляем еще один процессор **PutDatabaseRecord**:
+
+    Свойства:
+
+        * Record Reader: `JsonTreeReader`
+
+        * Database Connection Pool: `PostgreSQL-Pool`
+
+        * Table Name: `sales_stream`
+
+        * Translate Field Names: `false` (важно!)
+
+        * Unmatched Field Behavior: `Ignore Unmatched Fields`
+
+        * Unmatched Column Behavior: `Ignore Unmatched Columns`
+
+        * Statement Type: `INSERT`
 
 3. Соединяем success от ConsumeKafka_2_6 -> PutDatabaseRecord
 
@@ -78,6 +101,7 @@ docker restart nifi
 ## Шаг 3: Настройка Metabase 
 
 1. Открываем http://localhost:3000
+
 *Примечание: Может не сразу открыться из-за долгих миграций при первом запуске Metabase, следует подождать несколько минут*
 
 2. Создаем учётную запись
